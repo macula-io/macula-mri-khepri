@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `classes_of/1`, `subclasses/1`, `superclasses/1`
 - Public API module `macula_mri_khepri` with delegating functions
 - Umbrella project structure (`apps/macula_mri_khepri/`)
+- Comprehensive test suite (54 tests)
+  - Store tests: CRUD, tree queries, bulk operations, MRI parsing
+  - Graph tests: relationships, traversal, cycle handling, taxonomy
+  - Index tests: GenServer lifecycle, structure initialization
 
 ### Dependencies
 
