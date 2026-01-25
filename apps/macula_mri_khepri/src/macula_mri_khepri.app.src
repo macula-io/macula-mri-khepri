@@ -1,0 +1,31 @@
+{application, macula_mri_khepri, [
+    {description, "Khepri persistence adapter for Macula Resource Identifiers"},
+    {vsn, "0.1.0"},
+    {registered, [
+        macula_mri_khepri_sup
+    ]},
+    {mod, {macula_mri_khepri_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        khepri
+        %% macula  %% TODO: uncomment when macula_mri is released
+    ]},
+    {env, [
+        %% Khepri store name
+        {store_name, mri_store},
+        %% Data directory for persistent storage
+        {data_dir, "/var/lib/macula/mri"},
+        %% Cluster configuration
+        {cluster_name, macula_mri_cluster},
+        %% Index configuration
+        {enable_type_index, true},
+        {enable_realm_index, true}
+    ]},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [
+        {"GitHub", "https://github.com/macula-io/macula-mri-khepri"},
+        {"Macula", "https://macula.io"}
+    ]}
+]}.
