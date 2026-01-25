@@ -140,6 +140,11 @@ Reverse: [mri_rel, reverse, Object, Predicate, Subject] → Metadata
 [mri_index, by_realm, Realm, MRI] → true
 ```
 
+## Documentation
+
+- **[MRI Core Guide](https://github.com/macula-io/macula/blob/main/guides/mri.md)** - MRI format, types, behaviours, extensibility
+- **[Khepri Adapter Guide](guides/mri-system-guide.md)** - Storage schema, API usage, configuration, troubleshooting
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
@@ -149,3 +154,4 @@ Apache-2.0. See [LICENSE](LICENSE).
 - [Macula Platform](https://macula.io)
 - [MRI Design Document](https://github.com/macula-io/macula-console/blob/main/plans/DESIGN_MACULA_RESOURCE_IDENTIFIERS.md)
 - [Khepri](https://github.com/rabbitmq/khepri)
+- [Ra (Raft)](https://github.com/rabbitmq/ra)
