@@ -56,7 +56,12 @@ store_test_() ->
         {"List by type falls back to direct query", fun list_by_type_fallback/0},
         {"Count children returns correct count", fun count_children_returns_correct_count/0},
         {"Import creates multiple MRIs atomically", fun import_creates_multiple_atomically/0},
-        {"Export subtree includes all descendants", fun export_subtree_includes_all/0}
+        {"Export subtree includes all descendants", fun export_subtree_includes_all/0},
+        %% Pagination tests
+        {"List children with limit", fun list_children_with_limit/0},
+        {"List children with offset", fun list_children_with_offset/0},
+        {"List descendants with pagination", fun list_descendants_with_pagination/0},
+        {"List by type with pagination", fun list_by_type_with_pagination/0}
      ]}.
 
 %%====================================================================
@@ -479,3 +484,77 @@ parse_mri_multiple_segments() ->
     ?assertEqual([mri, asset, <<"io.macula">>, <<"org">>, <<"team">>, <<"project">>, <<"asset">>], ResultPath),
 
     ets:delete(CapturedPath).
+
+%%====================================================================
+%% Pagination Tests
+%%====================================================================
+
+list_children_with_limit() ->
+    MRI = <<"mri:app:io.macula/acme">>,
+
+    %% Return 10 children
+    ChildData = maps:from_list([
+        {[mri, app, <<"io.macula">>, <<"acme">>, integer_to_binary(I)],
+         #{mri => <<"mri:app:io.macula/acme/", (integer_to_binary(I))/binary>>}}
+        || I <- lists:seq(1, 10)
+    ]),
+
+    meck:expect(khepri, get_many, fun(_Store, _Path) -> {ok, ChildData} end),
+
+    %% Request only 3 results
+    Result = macula_mri_khepri_store:list_children_opts(test_store, MRI, #{limit => 3}),
+
+    ?assertEqual(3, length(Result)).
+
+list_children_with_offset() ->
+    MRI = <<"mri:app:io.macula/acme">>,
+
+    %% Return 10 children
+    ChildData = maps:from_list([
+        {[mri, app, <<"io.macula">>, <<"acme">>, integer_to_binary(I)],
+         #{mri => <<"mri:app:io.macula/acme/", (integer_to_binary(I))/binary>>}}
+        || I <- lists:seq(1, 10)
+    ]),
+
+    meck:expect(khepri, get_many, fun(_Store, _Path) -> {ok, ChildData} end),
+
+    %% Request 3 results starting at offset 5
+    Result = macula_mri_khepri_store:list_children_opts(test_store, MRI, #{limit => 3, offset => 5}),
+
+    ?assertEqual(3, length(Result)).
+
+list_descendants_with_pagination() ->
+    MRI = <<"mri:app:io.macula">>,
+
+    %% Return 20 descendants
+    DescendantData = maps:from_list([
+        {[mri, app, <<"io.macula">>, <<"item">>, integer_to_binary(I)],
+         #{mri => <<"mri:app:io.macula/item/", (integer_to_binary(I))/binary>>}}
+        || I <- lists:seq(1, 20)
+    ]),
+
+    meck:expect(khepri, get_many, fun(_Store, _Path) -> {ok, DescendantData} end),
+
+    %% Request 5 results with offset 10
+    Result = macula_mri_khepri_store:list_descendants_opts(test_store, MRI, #{limit => 5, offset => 10}),
+
+    ?assertEqual(5, length(Result)).
+
+list_by_type_with_pagination() ->
+    Type = app,
+    Realm = <<"io.macula">>,
+
+    %% Return 15 indexed MRIs
+    IndexData = maps:from_list([
+        {<<"mri:app:io.macula/app", (integer_to_binary(I))/binary>>, true}
+        || I <- lists:seq(1, 15)
+    ]),
+
+    meck:expect(khepri, get_many, fun(_Store, [mri_index, by_type | _]) ->
+        {ok, IndexData}
+    end),
+
+    %% Request 4 results with offset 2
+    Result = macula_mri_khepri_store:list_by_type_opts(test_store, Type, Realm, #{limit => 4, offset => 2}),
+
+    ?assertEqual(4, length(Result)).

@@ -50,8 +50,8 @@ index_test_() ->
      [
         {"Start link creates GenServer", fun start_link_creates_genserver/0},
         {"Init sends initialize message", fun init_sends_initialize_message/0},
-        {"Initialize indexes creates structure", fun initialize_indexes_creates_structure/0},
-        {"Rebuild indexes clears and recreates", fun rebuild_indexes_clears_and_recreates/0},
+        {"Initialize indexes is no-op", fun initialize_indexes_is_no_op/0},
+        {"Rebuild indexes clears old data", fun rebuild_indexes_clears_old_data/0},
         {"Rebuild indexes scans MRIs", fun rebuild_indexes_scans_mris/0},
         {"Parses standard MRI format", fun parses_standard_mri/0},
         {"Handles MRI without path", fun handles_mri_without_path/0},
@@ -88,7 +88,9 @@ init_sends_initialize_message() ->
 %% Index Structure Tests
 %%====================================================================
 
-initialize_indexes_creates_structure() ->
+initialize_indexes_is_no_op() ->
+    %% Since v0.3.0, ensure_index_structure is a no-op because
+    %% Khepri automatically creates paths when indexes are written.
     CreatedPaths = ets:new(created_paths, [public, bag]),
 
     meck:expect(khepri, exists, fun(_Store, _Path) -> false end),
@@ -102,13 +104,10 @@ initialize_indexes_creates_structure() ->
     %% Wait for initialization
     timer:sleep(50),
 
-    %% Verify index structure paths were created
+    %% Verify NO paths were created during initialization
+    %% (paths are created on-demand when indexes are written)
     AllPaths = [P || {path, P} <- ets:tab2list(CreatedPaths)],
-
-    ?assert(lists:member([mri_index, by_type], AllPaths)),
-    ?assert(lists:member([mri_index, by_realm], AllPaths)),
-    ?assert(lists:member([mri_rel, forward], AllPaths)),
-    ?assert(lists:member([mri_rel, reverse], AllPaths)),
+    ?assertEqual([], AllPaths),
 
     ets:delete(CreatedPaths).
 
@@ -116,33 +115,17 @@ initialize_indexes_creates_structure() ->
 %% Rebuild Index Tests
 %%====================================================================
 
-rebuild_indexes_clears_and_recreates() ->
+rebuild_indexes_clears_old_data() ->
+    %% Since v0.3.0, rebuild only clears existing indexes - it doesn't
+    %% pre-create root paths (those are created on-demand during scan)
     DeletedPaths = ets:new(deleted_paths, [public, bag]),
-    CreatedPaths = ets:new(created_paths, [public, bag]),
-    ExistsState = ets:new(exists_state, [public, set]),
 
-    %% Initially exists returns true (for init), then false (after delete, for rebuild)
-    ets:insert(ExistsState, {initialized, true}),
-
-    meck:expect(khepri, exists, fun(_Store, _Path) ->
-        case ets:lookup(ExistsState, initialized) of
-            [{initialized, true}] -> true;
-            _ -> false
-        end
-    end),
+    meck:expect(khepri, exists, fun(_Store, _Path) -> true end),
     meck:expect(khepri, delete, fun(_Store, Path) ->
-        %% After delete, mark exists as false for structure paths
-        case Path of
-            [mri_index] -> ets:insert(ExistsState, {initialized, false});
-            _ -> ok
-        end,
         ets:insert(DeletedPaths, {path, Path}),
         ok
     end),
-    meck:expect(khepri, put, fun(_Store, Path, _Data) ->
-        ets:insert(CreatedPaths, {path, Path}),
-        ok
-    end),
+    meck:expect(khepri, put, fun(_Store, _Path, _Data) -> ok end),
     meck:expect(khepri, get_many, fun(_Store, _Path) -> {ok, #{}} end),
 
     {ok, _Pid} = macula_mri_khepri_index:start_link(test_store),
@@ -152,7 +135,6 @@ rebuild_indexes_clears_and_recreates() ->
 
     %% Clear captured paths before rebuild
     ets:delete_all_objects(DeletedPaths),
-    ets:delete_all_objects(CreatedPaths),
 
     %% Call rebuild
     ok = macula_mri_khepri_index:rebuild_indexes(test_store),
@@ -161,13 +143,7 @@ rebuild_indexes_clears_and_recreates() ->
     AllDeleted = [P || {path, P} <- ets:tab2list(DeletedPaths)],
     ?assert(lists:member([mri_index], AllDeleted)),
 
-    %% Verify structure was recreated
-    AllCreated = [P || {path, P} <- ets:tab2list(CreatedPaths)],
-    ?assert(lists:member([mri_index, by_type], AllCreated)),
-
-    ets:delete(DeletedPaths),
-    ets:delete(CreatedPaths),
-    ets:delete(ExistsState).
+    ets:delete(DeletedPaths).
 
 rebuild_indexes_scans_mris() ->
     IndexedMRIs = ets:new(indexed_mris, [public, bag]),

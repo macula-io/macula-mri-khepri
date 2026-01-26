@@ -17,6 +17,14 @@
 %%% - "What is X related to?" (forward)
 %%% - "What is related to X?" (reverse)
 %%%
+%%% == Depth Limit ==
+%%%
+%%% Transitive traversal supports an optional `max_depth' to prevent
+%%% stack overflow on deep graphs:
+%%% ```
+%%% traverse_transitive_opts(Start, Predicate, Direction, #{max_depth => 10})
+%%% '''
+%%%
 %%% @end
 %%%-------------------------------------------------------------------
 -module(macula_mri_khepri_graph).
@@ -46,11 +54,15 @@
     all_related_from/1,
     all_related_from/2,
 
-    %% Graph traversal
+    %% Graph traversal (backwards compatible)
     traverse/3,
     traverse/4,
     traverse_transitive/3,
     traverse_transitive/4,
+
+    %% Graph traversal with options
+    traverse_transitive_opts/4,
+    traverse_transitive_opts/5,
 
     %% Taxonomy helpers
     instances_of/1,
@@ -66,6 +78,7 @@
 ]).
 
 -define(DEFAULT_STORE, mri_store).
+-define(DEFAULT_MAX_DEPTH, 100).
 
 -include_lib("khepri/include/khepri.hrl").
 
@@ -78,6 +91,9 @@
 -type metadata() :: map().
 -type store() :: atom().
 -type direction() :: forward | reverse.
+-type traverse_opts() :: #{
+    max_depth => pos_integer()
+}.
 
 %%====================================================================
 %% Relationship CRUD
@@ -106,10 +122,14 @@ create_relationship(Store, Subject, Predicate, Object, Metadata) ->
     ForwardPath = [mri_rel, forward, Subject, Predicate, Object],
     ReversePath = [mri_rel, reverse, Object, Predicate, Subject],
 
-    khepri:transaction(Store, fun() ->
+    %% khepri:transaction returns {ok, TransactionResult} or {error, ...}
+    case khepri:transaction(Store, fun() ->
         khepri_tx:put(ForwardPath, Data),
         khepri_tx:put(ReversePath, Data)
-    end).
+    end) of
+        {ok, _} -> ok;
+        Error -> Error
+    end.
 
 %% @doc Delete a relationship.
 -spec delete_relationship(mri(), predicate(), mri()) -> ok | {error, term()}.
@@ -121,10 +141,14 @@ delete_relationship(Store, Subject, Predicate, Object) ->
     ForwardPath = [mri_rel, forward, Subject, Predicate, Object],
     ReversePath = [mri_rel, reverse, Object, Predicate, Subject],
 
-    khepri:transaction(Store, fun() ->
+    %% khepri:transaction returns {ok, TransactionResult} or {error, ...}
+    case khepri:transaction(Store, fun() ->
         khepri_tx:delete(ForwardPath),
         khepri_tx:delete(ReversePath)
-    end).
+    end) of
+        {ok, _} -> ok;
+        Error -> Error
+    end.
 
 %% @doc Check if a relationship exists.
 -spec relationship_exists(mri(), predicate(), mri()) -> boolean().
@@ -207,7 +231,7 @@ all_related_from(Store, Object) ->
     end.
 
 %%====================================================================
-%% Graph Traversal
+%% Graph Traversal (Backwards Compatible)
 %%====================================================================
 
 %% @doc Traverse one hop in the given direction.
@@ -222,25 +246,55 @@ traverse(Store, Start, Predicate, reverse) ->
     related_from(Store, Start, Predicate).
 
 %% @doc Traverse transitively (follow all edges of type).
+%% Uses default max_depth of 100.
 -spec traverse_transitive(mri(), predicate(), direction()) -> [mri()].
 traverse_transitive(Start, Predicate, Direction) ->
     traverse_transitive(?DEFAULT_STORE, Start, Predicate, Direction).
 
 -spec traverse_transitive(store(), mri(), predicate(), direction()) -> [mri()].
 traverse_transitive(Store, Start, Predicate, Direction) ->
-    traverse_transitive_acc(Store, Start, Predicate, Direction, sets:new()).
+    traverse_transitive_opts(Store, Start, Predicate, Direction, #{}).
 
-traverse_transitive_acc(Store, Current, Predicate, Direction, Visited) ->
+%%====================================================================
+%% Graph Traversal with Options
+%%====================================================================
+
+%% @doc Traverse transitively with options.
+%%
+%% Options:
+%% - `max_depth': Maximum traversal depth (default: 100)
+%%
+%% Example:
+%% ```
+%% traverse_transitive_opts(Start, depends_on, forward, #{max_depth => 5})
+%% '''
+-spec traverse_transitive_opts(mri(), predicate(), direction(), traverse_opts()) -> [mri()].
+traverse_transitive_opts(Start, Predicate, Direction, Opts) ->
+    traverse_transitive_opts(?DEFAULT_STORE, Start, Predicate, Direction, Opts).
+
+-spec traverse_transitive_opts(store(), mri(), predicate(), direction(), traverse_opts()) -> [mri()].
+traverse_transitive_opts(Store, Start, Predicate, Direction, Opts) ->
+    MaxDepth = maps:get(max_depth, Opts, ?DEFAULT_MAX_DEPTH),
+    traverse_transitive_acc(Store, Start, Predicate, Direction, sets:new(), 0, MaxDepth).
+
+%% @private Recursive traversal with depth tracking.
+traverse_transitive_acc(_Store, _Current, _Predicate, _Direction, _Visited, Depth, MaxDepth) when Depth >= MaxDepth ->
+    %% Max depth reached, stop traversal
+    [];
+traverse_transitive_acc(Store, Current, Predicate, Direction, Visited, Depth, MaxDepth) ->
     case sets:is_element(Current, Visited) of
         true ->
             [];
         false ->
             NewVisited = sets:add_element(Current, Visited),
             DirectNeighbors = traverse(Store, Current, Predicate, Direction),
+            %% Filter out already-visited neighbors to handle cycles correctly
+            UnvisitedNeighbors = [N || N <- DirectNeighbors,
+                                       not sets:is_element(N, NewVisited)],
             Transitive = lists:flatmap(fun(N) ->
-                traverse_transitive_acc(Store, N, Predicate, Direction, NewVisited)
-            end, DirectNeighbors),
-            DirectNeighbors ++ Transitive
+                traverse_transitive_acc(Store, N, Predicate, Direction, NewVisited, Depth + 1, MaxDepth)
+            end, UnvisitedNeighbors),
+            UnvisitedNeighbors ++ Transitive
     end.
 
 %%====================================================================

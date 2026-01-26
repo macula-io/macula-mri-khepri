@@ -81,30 +81,26 @@ terminate(_Reason, _State) ->
 %%====================================================================
 
 %% @private Ensure the index tree structure exists.
-ensure_index_structure(Store) ->
-    %% Create root index paths if they don't exist
-    Paths = [
-        [mri_index, by_type],
-        [mri_index, by_realm],
-        [mri_rel, forward],
-        [mri_rel, reverse]
-    ],
-    lists:foreach(fun(Path) ->
-        case khepri:exists(Store, Path) of
-            false ->
-                khepri:put(Store, Path, #{initialized => true});
-            true ->
-                ok
-        end
-    end, Paths).
+%%
+%% Note: Khepri automatically creates intermediate paths when writing,
+%% so explicit root node initialization is not strictly necessary.
+%% This function is kept as a no-op for backwards compatibility and
+%% to document the expected index structure.
+ensure_index_structure(_Store) ->
+    %% Index paths:
+    %% - [mri_index, by_type, Type, Realm, MRI] -> true
+    %% - [mri_index, by_realm, Realm, MRI] -> true
+    %% - [mri_rel, forward, Subject, Predicate, Object] -> Metadata
+    %% - [mri_rel, reverse, Object, Predicate, Subject] -> Metadata
+    %%
+    %% These paths are created on-demand by Khepri when indexes are written.
+    %% No initialization needed.
+    ok.
 
 %% @private Rebuild all indexes from stored MRIs.
 do_rebuild_indexes(Store) ->
     %% Clear existing indexes
     khepri:delete(Store, [mri_index]),
-
-    %% Re-initialize structure
-    ensure_index_structure(Store),
 
     %% Scan all MRIs and rebuild indexes
     %% This is expensive but necessary for recovery
@@ -128,14 +124,24 @@ scan_and_index(Store, BasePath) ->
     end.
 
 index_mri(Store, MRI, Metadata) ->
-    case parse_mri(MRI) of
+    case macula_mri_khepri_parse:parse(MRI) of
         {ok, Type, Realm, _} ->
-            %% Type index
-            TypePath = [mri_index, by_type, Type, Realm, MRI],
-            khepri:put(Store, TypePath, true),
-            %% Realm index
-            RealmPath = [mri_index, by_realm, Realm, MRI],
-            khepri:put(Store, RealmPath, true),
+            %% Type index (config-driven)
+            case application:get_env(macula_mri_khepri, enable_type_index, true) of
+                true ->
+                    TypePath = [mri_index, by_type, Type, Realm, MRI],
+                    khepri:put(Store, TypePath, true);
+                false ->
+                    ok
+            end,
+            %% Realm index (config-driven)
+            case application:get_env(macula_mri_khepri, enable_realm_index, true) of
+                true ->
+                    RealmPath = [mri_index, by_realm, Realm, MRI],
+                    khepri:put(Store, RealmPath, true);
+                false ->
+                    ok
+            end,
             %% Custom indexes from metadata
             index_custom(Store, MRI, Metadata);
         _ ->
@@ -146,28 +152,3 @@ index_custom(_Store, _MRI, _Metadata) ->
     %% Placeholder for custom index logic
     %% Users can extend this via configuration
     ok.
-
-%% @private Parse MRI (duplicate from store, consider extracting).
-parse_mri(<<"mri:", Rest/binary>>) ->
-    case binary:split(Rest, <<":">>) of
-        [TypeBin, RealmPath] ->
-            Type = try
-                binary_to_existing_atom(TypeBin, utf8)
-            catch
-                _:_ -> binary_to_atom(TypeBin, utf8)
-            end,
-            case binary:split(RealmPath, <<"/">>) of
-                [Realm] ->
-                    {ok, Type, Realm, []};
-                [Realm | Segments] ->
-                    AllSegments = case Segments of
-                        [PathRest] -> binary:split(PathRest, <<"/">>, [global]);
-                        Other -> Other
-                    end,
-                    {ok, Type, Realm, AllSegments}
-            end;
-        _ ->
-            {error, invalid_format}
-    end;
-parse_mri(_) ->
-    {error, invalid_prefix}.

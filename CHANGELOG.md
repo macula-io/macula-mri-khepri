@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-26
+
+### Added
+
+- **Pagination Support** for list functions
+  - `list_children_opts/2,3` with `#{limit, offset}` options
+  - `list_descendants_opts/2,3` with `#{limit, offset}` options
+  - `list_by_type_opts/3,4` with `#{limit, offset}` options
+  - Default limit of 1000 results per query
+  - Backwards-compatible: existing functions unchanged
+
+- **Depth-Limited Graph Traversal**
+  - `traverse_transitive_opts/4,5` with `#{max_depth}` option
+  - Default max_depth of 100 to prevent stack overflow
+  - Protects against deep/infinite graph traversal
+
+- **Shared MRI Parsing Module** (`macula_mri_khepri_parse`)
+  - Extracted duplicated `parse_mri/1` from `_store.erl` and `_index.erl`
+  - Uses safer `binary_to_existing_atom` with fallback
+  - Internal module (not part of public API)
+
+- **Index Fallback Warning**
+  - `list_by_type` now logs a warning when type index is missing
+  - Helps identify missing indexes in production
+
+### Changed
+
+- **Config-Driven Indexing**
+  - `enable_type_index` and `enable_realm_index` configs now actually used
+  - Can disable specific indexes via application config
+
+- **Simplified Index Initialization**
+  - Removed redundant root node creation in `ensure_index_structure/1`
+  - Khepri auto-creates paths on write; no pre-initialization needed
+
+### Fixed
+
+- DRY violation: `parse_mri/1` was duplicated across modules
+- Unused config: `enable_type_index` and `enable_realm_index` were defined but never read
+- Potential memory exhaustion: list functions now have default limits
+
+## [0.2.0] - 2026-01-26
+
+### Added
+
+- **Interactive TUI Demo** (`macula_mri_khepri_tui`)
+  - Real-time network generation with progress visualization
+  - Live statistics table by Belgian region
+  - Performance benchmarking with color-coded metrics
+  - Adjustable scale from 1% to 100%
+  - Keyboard navigation: [G]enerate, [Q]uery, [B]enchmark, [C]lear
+  - Launch with `./scripts/demo.sh`
+
+- **Proximus Scale Demo** (`macula_mri_khepri_proximus_demo`)
+  - Belgian telecom network simulation
+  - ~4,000 street cabinets (SRPs) at full scale
+  - ~1,000,000 home connections at full scale
+  - `generate_network/2` with configurable scale
+  - `count_by_region/1`, `list_srps_in_region/2`, `list_homes_for_srp/2`
+  - `benchmark/2` for performance testing
+
+- **Integration Tests** (23 new tests)
+  - Real Khepri store tests (no mocks)
+  - Full CRUD, tree queries, bulk operations
+  - Graph relationships with cycle detection
+  - Taxonomy helpers verification
+
+### Fixed
+
+- Khepri 0.16+ error format compatibility (`{error, {khepri, ...}}`)
+- Transaction return value handling (`{ok, Result}` unwrapping)
+- Horus restriction for `erlang:system_time/1` in transactions
+- Cycle detection in `traverse_transitive` for graphs with loops
+- MRI type parsing with `binary_to_atom` for new types
+
+### Changed
+
+- Test count: 54 → 82 tests (all passing)
+
 ## [0.1.0] - 2026-01-25
 
 ### Added
@@ -39,5 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Khepri 0.16.0
 
-[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/macula-io/macula-mri-khepri/releases/tag/v0.1.0

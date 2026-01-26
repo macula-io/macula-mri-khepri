@@ -59,6 +59,8 @@ graph_test_() ->
         {"Traverse reverse returns direct neighbors", fun traverse_reverse_returns_direct/0},
         {"Traverse transitive follows chains", fun traverse_transitive_follows_chains/0},
         {"Traverse transitive handles cycles", fun traverse_transitive_handles_cycles/0},
+        {"Traverse transitive respects max_depth", fun traverse_transitive_respects_max_depth/0},
+        {"Traverse transitive default depth is 100", fun traverse_transitive_default_depth/0},
 
         %% Taxonomy
         {"Instances of returns direct instances", fun instances_of_returns_direct/0},
@@ -507,3 +509,83 @@ superclasses_returns_direct() ->
     Result = macula_mri_khepri_graph:superclasses(test_store, Class),
 
     ?assertEqual([<<"mri:class:io.macula/vehicle">>], Result).
+
+%%====================================================================
+%% Depth Limit Tests
+%%====================================================================
+
+traverse_transitive_respects_max_depth() ->
+    %% Create a chain: A -> B -> C -> D -> E -> F
+    %% With max_depth=2, should only reach B and C
+    A = <<"mri:node:io.macula/a">>,
+    B = <<"mri:node:io.macula/b">>,
+    C = <<"mri:node:io.macula/c">>,
+    D = <<"mri:node:io.macula/d">>,
+    Predicate = linked_to,
+
+    meck:expect(khepri, get_many, fun(_Store, Path) ->
+        case Path of
+            [mri_rel, forward, A, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, A, Predicate, B] =>
+                        #{subject => A, predicate => Predicate, object => B}
+                }};
+            [mri_rel, forward, B, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, B, Predicate, C] =>
+                        #{subject => B, predicate => Predicate, object => C}
+                }};
+            [mri_rel, forward, C, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, C, Predicate, D] =>
+                        #{subject => C, predicate => Predicate, object => D}
+                }};
+            [mri_rel, forward, D, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, D, Predicate, <<"mri:node:io.macula/e">>] =>
+                        #{subject => D, predicate => Predicate, object => <<"mri:node:io.macula/e">>}
+                }};
+            _ ->
+                {ok, #{}}
+        end
+    end),
+
+    %% With max_depth=2, starting from A, we should get B (depth 1) and C (depth 2)
+    %% D would be depth 3, which exceeds max_depth
+    Result = macula_mri_khepri_graph:traverse_transitive_opts(
+        test_store, A, Predicate, forward, #{max_depth => 2}),
+
+    ?assert(lists:member(B, Result)),
+    ?assert(lists:member(C, Result)),
+    %% D should NOT be in result (depth 3 > max_depth 2)
+    ?assertNot(lists:member(D, Result)).
+
+traverse_transitive_default_depth() ->
+    %% Test that default depth is 100 (doesn't stop prematurely for small chains)
+    A = <<"mri:node:io.macula/a">>,
+    B = <<"mri:node:io.macula/b">>,
+    C = <<"mri:node:io.macula/c">>,
+    Predicate = linked_to,
+
+    meck:expect(khepri, get_many, fun(_Store, Path) ->
+        case Path of
+            [mri_rel, forward, A, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, A, Predicate, B] =>
+                        #{subject => A, predicate => Predicate, object => B}
+                }};
+            [mri_rel, forward, B, Predicate, _] ->
+                {ok, #{
+                    [mri_rel, forward, B, Predicate, C] =>
+                        #{subject => B, predicate => Predicate, object => C}
+                }};
+            _ ->
+                {ok, #{}}
+        end
+    end),
+
+    %% Using default (no opts), should traverse the full chain
+    Result = macula_mri_khepri_graph:traverse_transitive(test_store, A, Predicate, forward),
+
+    ?assert(lists:member(B, Result)),
+    ?assert(lists:member(C, Result)).
