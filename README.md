@@ -21,7 +21,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {macula_mri_khepri, "0.1.0"}
+    {macula_mri_khepri, "0.2.0"}
 ]}.
 ```
 
@@ -139,6 +139,78 @@ Reverse: [mri_rel, reverse, Object, Predicate, Subject] → Metadata
 [mri_index, by_type, Type, Realm, MRI] → true
 [mri_index, by_realm, Realm, MRI] → true
 ```
+
+## Interactive TUI Demo
+
+Launch the interactive terminal demo:
+
+```bash
+./scripts/demo.sh
+```
+
+```
+╭────────────────────────────────────────────────────────────╮
+│  MACULA MRI - Proximus Network Scale Demo                  │
+╰────────────────────────────────────────────────────────────╯
+
+  Scale: 10% (press +/- to adjust)
+  Status: Ready  [████████████████████████████████████████] 100%
+
+  Network Topology
+  ┌──────────────┬──────────┬────────────┬────────────┐
+  │ Region       │ SRPs     │ Homes      │ Status     │
+  ├──────────────┼──────────┼────────────┼────────────┤
+  │ Brussels     │       40 │     10.0K  │ ✓ Complete │
+  │ Flanders     │      220 │     55.0K  │ ✓ Complete │
+  │ Wallonia     │      140 │     35.0K  │ ✓ Complete │
+  └──────────────┴──────────┴────────────┴────────────┘
+  Total: 400 SRPs, 100.0K Homes
+
+  Performance Metrics
+  ├── SRP Lookup:      45.2 µs
+  ├── List Children:   1.2 ms
+  ├── Type Query:      8.3 ms
+  └── Region Count:    12.1 ms
+
+  [G]enerate  [Q]uery  [B]enchmark  [C]lear  [+/-] Scale  [X] Exit
+```
+
+**Controls:**
+- `G` - Generate network at current scale
+- `Q` - Run sample query
+- `B` - Run performance benchmark
+- `C` - Clear network data
+- `+`/`-` - Adjust scale (1% to 100%)
+- `X` or `ESC` - Exit
+
+## Scale Demo: Proximus Network (Programmatic)
+
+The package also includes a programmatic demo module:
+
+```erlang
+%% Generate a scaled network (1% = ~40 SRPs, ~10K homes)
+{ok, Stats} = macula_mri_khepri_proximus_demo:generate_network(mri_store, #{
+    scale => 0.01  %% 1% of full scale
+}).
+
+%% Query by region
+Counts = macula_mri_khepri_proximus_demo:count_by_region(mri_store).
+%% => #{<<"brussels">> => #{srps => 4, homes => 1000}, ...}
+
+%% List SRPs in a region
+Srps = macula_mri_khepri_proximus_demo:list_srps_in_region(mri_store, <<"flanders">>).
+
+%% Run benchmark
+macula_mri_khepri_proximus_demo:benchmark(mri_store, #{
+    scale => 0.1,       %% 10% scale (~400 SRPs, ~100K homes)
+    iterations => 100
+}).
+```
+
+At full scale, this models:
+- ~4,000 street cabinets (SRPs)
+- ~1,000,000 home connections
+- Demonstrates trie index performance at realistic scale
 
 ## Documentation
 
