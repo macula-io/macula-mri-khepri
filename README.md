@@ -21,7 +21,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {macula_mri_khepri, "0.2.0"}
+    {macula_mri_khepri, "0.4.0"}
 ]}.
 ```
 
