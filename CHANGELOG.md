@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-29
+
+### Added
+
+- **Macula Core Integration**
+  - Added `macula ~> 0.20.5` dependency
+  - Enabled `macula_mri_store` behaviour in `macula_mri_khepri_store`
+  - Enabled `macula_mri_graph` behaviour in `macula_mri_khepri_graph`
+  - Full compatibility with macula's MRI type system including new `instance` type
+
+- **New Behaviour Callbacks**
+  - `get_relationship/3,4` - Retrieve relationship with metadata (macula_mri_graph behaviour)
+  - `list_by_realm/1,2` - List all MRIs in a realm (macula_mri_store behaviour)
+
+### Changed
+
+- Removed TODO comments for behaviour declarations (now implemented)
+
+---
+
 ## [0.3.0] - 2026-01-26
 
 ### Added
@@ -118,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Khepri 0.16.0
 
-[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/macula-io/macula-mri-khepri/releases/tag/v0.1.0

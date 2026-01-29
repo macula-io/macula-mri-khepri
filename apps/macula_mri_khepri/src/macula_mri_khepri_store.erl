@@ -29,8 +29,7 @@
 %%%-------------------------------------------------------------------
 -module(macula_mri_khepri_store).
 
-%% TODO: Implement behaviour when macula_mri is released
-%% -behaviour(macula_mri_store).
+-behaviour(macula_mri_store).
 
 -export([
     %% CRUD operations
@@ -52,6 +51,8 @@
     list_descendants/2,
     list_by_type/2,
     list_by_type/3,
+    list_by_realm/1,
+    list_by_realm/2,
     count_children/1,
     count_children/2,
 
@@ -219,6 +220,15 @@ list_by_type(Type, Realm) ->
 list_by_type(Store, Type, Realm) ->
     do_list_by_type(Store, Type, Realm, default_opts()).
 
+%% @doc List all MRIs in a realm.
+-spec list_by_realm(binary()) -> [mri()].
+list_by_realm(Realm) ->
+    do_list_by_realm(?DEFAULT_STORE, Realm, default_opts()).
+
+-spec list_by_realm(store(), binary()) -> [mri()].
+list_by_realm(Store, Realm) ->
+    do_list_by_realm(Store, Realm, default_opts()).
+
 %% @doc Count direct children of an MRI.
 -spec count_children(mri()) -> non_neg_integer().
 count_children(MRI) ->
@@ -323,6 +333,31 @@ do_list_by_type(Store, Type, Realm, Opts) ->
 do_count_children(Store, MRI) ->
     %% For count, we get all children (no pagination)
     length(do_list_children(Store, MRI, #{limit => infinity, offset => 0})).
+
+do_list_by_realm(Store, Realm, Opts) ->
+    %% Use realm index if available
+    %% Index path: [mri_index, by_realm, Realm, MRI] -> true
+    IndexPath = [mri_index, by_realm, Realm, #if_path_matches{regex = any}],
+    case khepri:get_many(Store, IndexPath) of
+        {ok, Results} when map_size(Results) > 0 ->
+            %% Keys are full paths; extract the MRI (last element)
+            MRIs = [extract_mri_from_key(Key) || Key <- maps:keys(Results)],
+            apply_pagination(MRIs, Opts);
+        _ ->
+            %% Log warning about index miss and fallback
+            ?LOG_WARNING("[macula_mri_khepri] Realm index miss for ~p, falling back to tree scan",
+                        [Realm]),
+            %% Fallback to scanning all types for this realm
+            %% Path: [mri, <any type>, Realm, <any path>]
+            Path = [mri, #if_name_matches{regex = any}, Realm, #if_path_matches{regex = any}],
+            case khepri:get_many(Store, Path) of
+                {ok, Rs} ->
+                    MRIs = [maps:get(mri, V) || {_, V} <- maps:to_list(Rs), is_map(V)],
+                    apply_pagination(MRIs, Opts);
+                _ ->
+                    []
+            end
+    end.
 
 %% @private Extract MRI from a key (handles both path lists and direct binaries)
 extract_mri_from_key(Key) when is_list(Key) -> lists:last(Key);

@@ -1,6 +1,6 @@
 {application, macula_mri_khepri, [
     {description, "Khepri persistence adapter for Macula Resource Identifiers"},
-    {vsn, "0.3.0"},
+    {vsn, "0.4.0"},
     {registered, [
         macula_mri_khepri_sup
     ]},
@@ -8,8 +8,8 @@
     {applications, [
         kernel,
         stdlib,
-        khepri
-        %% macula  %% TODO: uncomment when macula_mri is released
+        khepri,
+        macula
     ]},
     {env, [
         %% Khepri store name

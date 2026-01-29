@@ -29,8 +29,7 @@
 %%%-------------------------------------------------------------------
 -module(macula_mri_khepri_graph).
 
-%% TODO: Implement behaviour when macula_mri is released
-%% -behaviour(macula_mri_graph).
+-behaviour(macula_mri_graph).
 
 -export([
     %% Relationship CRUD
@@ -41,6 +40,8 @@
     delete_relationship/4,
     relationship_exists/3,
     relationship_exists/4,
+    get_relationship/3,
+    get_relationship/4,
 
     %% Forward queries (subject -> objects)
     related_to/2,
@@ -159,6 +160,25 @@ relationship_exists(Subject, Predicate, Object) ->
 relationship_exists(Store, Subject, Predicate, Object) ->
     Path = [mri_rel, forward, Subject, Predicate, Object],
     khepri:exists(Store, Path).
+
+%% @doc Get a relationship with its metadata.
+-spec get_relationship(mri(), predicate(), mri()) -> {ok, map()} | {error, not_found | term()}.
+get_relationship(Subject, Predicate, Object) ->
+    get_relationship(?DEFAULT_STORE, Subject, Predicate, Object).
+
+-spec get_relationship(store(), mri(), predicate(), mri()) -> {ok, map()} | {error, not_found | term()}.
+get_relationship(Store, Subject, Predicate, Object) ->
+    Path = [mri_rel, forward, Subject, Predicate, Object],
+    case khepri:get(Store, Path) of
+        {ok, Value} when is_map(Value) ->
+            {ok, Value};
+        {error, {khepri, node_not_found, _}} ->
+            {error, not_found};
+        {error, {node_not_found, _}} ->
+            {error, not_found};
+        Error ->
+            Error
+    end.
 
 %%====================================================================
 %% Forward Queries (Subject -> Objects)
