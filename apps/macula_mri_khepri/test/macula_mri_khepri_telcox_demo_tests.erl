@@ -1,23 +1,23 @@
 %%%-------------------------------------------------------------------
 %%% @doc
-%%% Tests for the Proximus scale demo module.
+%%% Tests for the TelcoX scale demo module.
 %%%
 %%% Uses a real Khepri store to test the demo functionality at a
 %%% small scale to verify correctness.
 %%% @end
 %%%-------------------------------------------------------------------
--module(macula_mri_khepri_proximus_demo_tests).
+-module(macula_mri_khepri_telcox_demo_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(TEST_STORE, proximus_demo_test_store).
+-define(TEST_STORE, telcox_demo_test_store).
 
 %%====================================================================
 %% Test Fixtures
 %%====================================================================
 
 make_temp_dir() ->
-    TempBase = "/tmp/macula_mri_proximus_test",
+    TempBase = "/tmp/macula_mri_telcox_test",
     Unique = integer_to_list(erlang:unique_integer([positive])),
     Dir = TempBase ++ "_" ++ Unique,
     ok = filelib:ensure_dir(Dir ++ "/"),
@@ -88,7 +88,7 @@ cleanup(DataDir) ->
 %% Test Suite
 %%====================================================================
 
-proximus_demo_test_() ->
+telcox_demo_test_() ->
     {foreach,
      fun setup/0,
      fun cleanup/1,
@@ -112,7 +112,7 @@ test_generate_small_network(_DataDir) ->
             {<<"flanders">>, 3},
             {<<"wallonia">>, 2}
         ],
-        {ok, Stats} = macula_mri_khepri_proximus_demo:generate_network(?TEST_STORE, #{
+        {ok, Stats} = macula_mri_khepri_telcox_demo:generate_network(?TEST_STORE, #{
             regions => SmallRegions,
             homes_per_srp => 5,
             homes_variance => 2,
@@ -132,7 +132,7 @@ test_count_by_region(_DataDir) ->
             {<<"brussels">>, 2},
             {<<"flanders">>, 3}
         ],
-        {ok, _} = macula_mri_khepri_proximus_demo:generate_network(?TEST_STORE, #{
+        {ok, _} = macula_mri_khepri_telcox_demo:generate_network(?TEST_STORE, #{
             regions => SmallRegions,
             homes_per_srp => 3,
             homes_variance => 0,
@@ -140,7 +140,7 @@ test_count_by_region(_DataDir) ->
         }),
 
         %% Count by region
-        Counts = macula_mri_khepri_proximus_demo:count_by_region(?TEST_STORE),
+        Counts = macula_mri_khepri_telcox_demo:count_by_region(?TEST_STORE),
 
         %% Verify Brussels
         BrusselsStats = maps:get(<<"brussels">>, Counts, #{srps => 0, homes => 0}),
@@ -158,7 +158,7 @@ test_list_srps_in_region(_DataDir) ->
         SmallRegions = [
             {<<"brussels">>, 3}
         ],
-        {ok, _} = macula_mri_khepri_proximus_demo:generate_network(?TEST_STORE, #{
+        {ok, _} = macula_mri_khepri_telcox_demo:generate_network(?TEST_STORE, #{
             regions => SmallRegions,
             homes_per_srp => 2,
             homes_variance => 0,
@@ -166,12 +166,12 @@ test_list_srps_in_region(_DataDir) ->
         }),
 
         %% List SRPs in Brussels
-        Srps = macula_mri_khepri_proximus_demo:list_srps_in_region(?TEST_STORE, <<"brussels">>),
+        Srps = macula_mri_khepri_telcox_demo:list_srps_in_region(?TEST_STORE, <<"brussels">>),
         ?assertEqual(3, length(Srps)),
 
         %% Verify MRI format
         [FirstSrp | _] = Srps,
-        ?assert(binary:match(FirstSrp, <<"mri:srp:be.proximus/brussels/">>) =/= nomatch)
+        ?assert(binary:match(FirstSrp, <<"mri:srp:be.telcox/brussels/">>) =/= nomatch)
     end}.
 
 test_list_homes_for_srp(_DataDir) ->
@@ -179,7 +179,7 @@ test_list_homes_for_srp(_DataDir) ->
         SmallRegions = [
             {<<"brussels">>, 1}
         ],
-        {ok, _} = macula_mri_khepri_proximus_demo:generate_network(?TEST_STORE, #{
+        {ok, _} = macula_mri_khepri_telcox_demo:generate_network(?TEST_STORE, #{
             regions => SmallRegions,
             homes_per_srp => 5,
             homes_variance => 0,
@@ -187,15 +187,15 @@ test_list_homes_for_srp(_DataDir) ->
         }),
 
         %% Get the SRP
-        [SrpMRI] = macula_mri_khepri_proximus_demo:list_srps_in_region(?TEST_STORE, <<"brussels">>),
+        [SrpMRI] = macula_mri_khepri_telcox_demo:list_srps_in_region(?TEST_STORE, <<"brussels">>),
 
         %% List homes for this SRP
-        Homes = macula_mri_khepri_proximus_demo:list_homes_for_srp(?TEST_STORE, SrpMRI),
+        Homes = macula_mri_khepri_telcox_demo:list_homes_for_srp(?TEST_STORE, SrpMRI),
         ?assertEqual(5, length(Homes)),
 
         %% Verify home MRI format
         [FirstHome | _] = Homes,
-        ?assert(binary:match(FirstHome, <<"mri:home:be.proximus/brussels/">>) =/= nomatch)
+        ?assert(binary:match(FirstHome, <<"mri:home:be.telcox/brussels/">>) =/= nomatch)
     end}.
 
 test_cleanup_network(_DataDir) ->
@@ -204,7 +204,7 @@ test_cleanup_network(_DataDir) ->
             {<<"brussels">>, 2},
             {<<"flanders">>, 2}
         ],
-        {ok, _} = macula_mri_khepri_proximus_demo:generate_network(?TEST_STORE, #{
+        {ok, _} = macula_mri_khepri_telcox_demo:generate_network(?TEST_STORE, #{
             regions => SmallRegions,
             homes_per_srp => 3,
             homes_variance => 0,
@@ -212,13 +212,13 @@ test_cleanup_network(_DataDir) ->
         }),
 
         %% Verify data exists
-        Srps = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.proximus">>),
+        Srps = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.telcox">>),
         ?assertEqual(4, length(Srps)),
 
         %% Cleanup
-        ok = macula_mri_khepri_proximus_demo:cleanup_network(?TEST_STORE),
+        ok = macula_mri_khepri_telcox_demo:cleanup_network(?TEST_STORE),
 
         %% Verify data is gone
-        SrpsAfter = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.proximus">>),
+        SrpsAfter = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.telcox">>),
         ?assertEqual(0, length(SrpsAfter))
     end}.

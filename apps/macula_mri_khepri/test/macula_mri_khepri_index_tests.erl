@@ -214,8 +214,8 @@ parses_standard_mri() ->
     end),
 
     MRIData = #{
-        [mri, device, <<"io.proximus.be">>, <<"cabinet">>, <<"1234">>] =>
-            #{mri => <<"mri:device:io.proximus.be/cabinet/1234">>, name => <<"Cabinet">>}
+        [mri, device, <<"io.telcox.be">>, <<"cabinet">>, <<"1234">>] =>
+            #{mri => <<"mri:device:io.telcox.be/cabinet/1234">>, name => <<"Cabinet">>}
     },
 
     meck:expect(khepri, get_many, fun(_Store, Path) ->
@@ -234,7 +234,7 @@ parses_standard_mri() ->
     ok = macula_mri_khepri_index:rebuild_indexes(test_store),
 
     Indexed = [I || {indexed, I} <- ets:tab2list(IndexedMRIs)],
-    ?assert(lists:member({device, <<"io.proximus.be">>, <<"mri:device:io.proximus.be/cabinet/1234">>}, Indexed)),
+    ?assert(lists:member({device, <<"io.telcox.be">>, <<"mri:device:io.telcox.be/cabinet/1234">>}, Indexed)),
 
     ets:delete(IndexedMRIs).
 

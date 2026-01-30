@@ -427,7 +427,7 @@ parse_mri_test_() ->
 
 parse_valid_mri_with_path() ->
     %% Test register to verify mri_to_path works
-    MRI = <<"mri:device:io.proximus.be/cabinet/1234">>,
+    MRI = <<"mri:device:io.telcox.be/cabinet/1234">>,
     Metadata = #{name => <<"Cabinet 1234">>},
 
     CapturedPath = ets:new(captured_path, [public, set]),
@@ -441,7 +441,7 @@ parse_valid_mri_with_path() ->
     macula_mri_khepri_store:register(test_store, MRI, Metadata),
 
     [{path, ResultPath}] = ets:lookup(CapturedPath, path),
-    ?assertEqual([mri, device, <<"io.proximus.be">>, <<"cabinet">>, <<"1234">>], ResultPath),
+    ?assertEqual([mri, device, <<"io.telcox.be">>, <<"cabinet">>, <<"1234">>], ResultPath),
 
     ets:delete(CapturedPath).
 

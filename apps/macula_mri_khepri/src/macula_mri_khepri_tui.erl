@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% @doc
-%%% Terminal User Interface for Proximus Network Demo.
+%%% Terminal User Interface for TelcoX Network Demo.
 %%%
 %%% A self-contained TUI using ANSI escape codes to showcase
-%%% the MRI storage capabilities at Proximus scale.
+%%% the MRI storage capabilities at TelcoX scale.
 %%%
 %%% Usage:
 %%% ```
@@ -188,7 +188,7 @@ render_header() ->
     io:put_chars("\n"),
     io:put_chars("  " ++ ?TL ++ string:copies(?H, 60) ++ ?TR ++ "\n"),
     io:put_chars("  " ++ ?V ++ ?BG_BLUE ++ "  MACULA MRI" ++ ?BG_DEFAULT ++
-                 " - Proximus Network Scale Demo                  " ++ ?V ++ "\n"),
+                 " - TelcoX Network Scale Demo                  " ++ ?V ++ "\n"),
     io:put_chars("  " ++ ?BL ++ string:copies(?H, 60) ++ ?BR ++ "\n"),
     io:put_chars(?RESET),
     io:put_chars("\n").
@@ -458,7 +458,7 @@ handle_query(#state{status = idle} = State) ->
 handle_query(#state{store = Store} = State) ->
     %% Sample query: find all SRPs in Brussels
     {Time1, Brussels} = timer:tc(fun() ->
-        macula_mri_khepri_store:list_by_type(Store, srp, <<"be.proximus">>)
+        macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>)
     end),
 
     BrusselsSrps = [S || S <- Brussels,
@@ -477,7 +477,7 @@ handle_benchmark(#state{store = Store} = State) ->
     render(State1),
 
     %% Get sample SRPs
-    AllSrps = macula_mri_khepri_store:list_by_type(Store, srp, <<"be.proximus">>),
+    AllSrps = macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>),
     SampleSrps = case length(AllSrps) of
         0 -> [];
         N -> [lists:nth(rand:uniform(N), AllSrps) || _ <- lists:seq(1, min(10, N))]
@@ -506,12 +506,12 @@ handle_benchmark(#state{store = Store} = State) ->
 
             %% Type query benchmark
             {TypeTime, _} = timer:tc(fun() ->
-                macula_mri_khepri_store:list_by_type(Store, srp, <<"be.proximus">>)
+                macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>)
             end),
 
             %% Region count benchmark
             {RegionTime, _} = timer:tc(fun() ->
-                macula_mri_khepri_proximus_demo:count_by_region(Store)
+                macula_mri_khepri_telcox_demo:count_by_region(Store)
             end),
 
             #{
@@ -529,11 +529,11 @@ handle_benchmark(#state{store = Store} = State) ->
 
 handle_clear(#state{store = Store} = State) ->
     %% Clear all demo data
-    catch khepri:delete_many(Store, [mri, srp, <<"be.proximus">>, ?KHEPRI_WILDCARD_STAR_STAR]),
-    catch khepri:delete_many(Store, [mri, home, <<"be.proximus">>, ?KHEPRI_WILDCARD_STAR_STAR]),
-    catch khepri:delete_many(Store, [mri_index, by_type, srp, <<"be.proximus">>, ?KHEPRI_WILDCARD_STAR_STAR]),
-    catch khepri:delete_many(Store, [mri_index, by_type, home, <<"be.proximus">>, ?KHEPRI_WILDCARD_STAR_STAR]),
-    catch khepri:delete_many(Store, [mri_index, by_realm, <<"be.proximus">>, ?KHEPRI_WILDCARD_STAR_STAR]),
+    catch khepri:delete_many(Store, [mri, srp, <<"be.telcox">>, ?KHEPRI_WILDCARD_STAR_STAR]),
+    catch khepri:delete_many(Store, [mri, home, <<"be.telcox">>, ?KHEPRI_WILDCARD_STAR_STAR]),
+    catch khepri:delete_many(Store, [mri_index, by_type, srp, <<"be.telcox">>, ?KHEPRI_WILDCARD_STAR_STAR]),
+    catch khepri:delete_many(Store, [mri_index, by_type, home, <<"be.telcox">>, ?KHEPRI_WILDCARD_STAR_STAR]),
+    catch khepri:delete_many(Store, [mri_index, by_realm, <<"be.telcox">>, ?KHEPRI_WILDCARD_STAR_STAR]),
 
     State#state{
         status = idle,
@@ -630,7 +630,7 @@ format_metric(Value, Unit) ->
 
 make_srp_entry(Region, SrpNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
-    MRI = <<"mri:srp:be.proximus/", Region/binary, "/", SrpId/binary>>,
+    MRI = <<"mri:srp:be.telcox/", Region/binary, "/", SrpId/binary>>,
     Metadata = #{
         type => srp,
         region => Region,
@@ -643,7 +643,7 @@ make_srp_entry(Region, SrpNum) ->
 make_home_entry(Region, SrpNum, HomeNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
     HomeId = iolist_to_binary(io_lib:format("home-~8..0B", [HomeNum])),
-    MRI = <<"mri:home:be.proximus/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
+    MRI = <<"mri:home:be.telcox/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
     Metadata = #{
         type => home,
         region => Region,

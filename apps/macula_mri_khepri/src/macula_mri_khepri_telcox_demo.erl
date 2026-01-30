@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @doc
-%%% Proximus-scale demo for Macula Resource Identifiers.
+%%% TelcoX-scale demo for Macula Resource Identifiers.
 %%%
 %%% Demonstrates the trie index performance with a realistic Belgian
 %%% telecom network structure:
@@ -12,13 +12,13 @@
 %%% == Network Structure ==
 %%%
 %%% ```
-%%% Realm: be.proximus
+%%% Realm: be.telcox
 %%%
 %%% Street Cabinets (SRPs):
-%%%   mri:srp:be.proximus/{region}/{srp_id}
+%%%   mri:srp:be.telcox/{region}/{srp_id}
 %%%
 %%% Home Connections:
-%%%   mri:home:be.proximus/{region}/{srp_id}/{home_id}
+%%%   mri:home:be.telcox/{region}/{srp_id}/{home_id}
 %%% '''
 %%%
 %%% == Regions ==
@@ -32,7 +32,7 @@
 %%%
 %%% @end
 %%%-------------------------------------------------------------------
--module(macula_mri_khepri_proximus_demo).
+-module(macula_mri_khepri_telcox_demo).
 
 -include_lib("khepri/include/khepri.hrl").
 
@@ -57,7 +57,7 @@
 ]).
 
 -define(DEFAULT_STORE, mri_store).
--define(REALM, <<"be.proximus">>).
+-define(REALM, <<"be.telcox">>).
 
 %% Belgian regions with SRP distribution
 -define(REGIONS, [
@@ -74,7 +74,7 @@
 %% Demo Lifecycle
 %%====================================================================
 
-%% @doc Generate a complete Proximus-scale network.
+%% @doc Generate a complete TelcoX-scale network.
 %% Uses default batch size of 1000 for imports.
 -spec generate_network(atom()) -> {ok, #{srps := non_neg_integer(), homes := non_neg_integer()}}.
 generate_network(Store) ->
@@ -92,7 +92,7 @@ generate_network(Store, Opts) ->
     Variance = maps:get(homes_variance, Opts, ?HOMES_VARIANCE),
     Regions = maps:get(regions, Opts, ?REGIONS),
 
-    io:format("Generating Proximus network...~n"),
+    io:format("Generating TelcoX network...~n"),
     io:format("  Regions: ~p~n", [length(Regions)]),
 
     %% Generate SRPs and homes region by region
@@ -208,9 +208,9 @@ cleanup_network(Store) ->
 
 -spec cleanup_network(atom(), map()) -> ok.
 cleanup_network(Store, _Opts) ->
-    io:format("Cleaning up Proximus network...~n"),
+    io:format("Cleaning up TelcoX network...~n"),
 
-    %% Delete all SRPs and homes under be.proximus realm
+    %% Delete all SRPs and homes under be.telcox realm
     %% Using Khepri delete with proper path pattern matching
     lists:foreach(
         fun(Type) ->
@@ -266,7 +266,7 @@ list_homes_for_srp(Store, SrpMRI) ->
 -spec list_homes_for_srp(atom(), binary(), map()) -> [binary()].
 list_homes_for_srp(Store, SrpMRI, _Opts) ->
     %% Extract region and SRP ID from the SRP MRI
-    %% mri:srp:be.proximus/region/srp-id -> mri:home:be.proximus/region/srp-id
+    %% mri:srp:be.telcox/region/srp-id -> mri:home:be.telcox/region/srp-id
     HomeMRI = binary:replace(SrpMRI, <<"mri:srp:">>, <<"mri:home:">>),
     macula_mri_khepri_store:list_children(Store, HomeMRI).
 
@@ -288,7 +288,7 @@ benchmark(Store, Opts) ->
     Iterations = maps:get(iterations, Opts, 100),
     Scale = maps:get(scale, Opts, 0.01),
 
-    io:format("~n=== Proximus Scale Benchmark ===~n"),
+    io:format("~n=== TelcoX Scale Benchmark ===~n"),
     io:format("Scale factor: ~p~n", [Scale]),
     io:format("Iterations: ~p~n~n", [Iterations]),
 
