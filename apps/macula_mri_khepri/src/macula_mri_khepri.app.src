@@ -1,6 +1,6 @@
 {application, macula_mri_khepri, [
     {description, "Khepri persistence adapter for Macula Resource Identifiers"},
-    {vsn, "0.4.1"},
+    {vsn, "0.4.2"},
     {registered, [
         macula_mri_khepri_sup
     ]},

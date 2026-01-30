@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-01-30
+
+### Fixed
+
+- **Hexdocs Image Path**
+  - Fixed SVG asset path in guide for hexdocs rendering
+  - Changed `../assets/` to `assets/` for correct URL resolution
+
+---
+
 ## [0.4.1] - 2026-01-30
 
 ### Changed
@@ -154,7 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Khepri 0.16.0
 
-[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/macula-io/macula-mri-khepri/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/macula-io/macula-mri-khepri/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/macula-io/macula-mri-khepri/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/macula-io/macula-mri-khepri/compare/v0.2.0...v0.3.0

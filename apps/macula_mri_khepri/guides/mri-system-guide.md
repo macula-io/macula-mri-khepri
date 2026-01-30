@@ -6,7 +6,7 @@ This guide covers the Khepri-based storage implementation for Macula Resource Id
 
 ## Overview
 
-![Khepri Storage Schema](../assets/khepri-storage-schema.svg)
+![Khepri Storage Schema](assets/khepri-storage-schema.svg)
 
 `macula_mri_khepri` implements the `macula_mri_store` and `macula_mri_graph` behaviours using [Khepri](https://github.com/rabbitmq/khepri), a tree-like replicated database built on [Ra](https://github.com/rabbitmq/ra) (Raft consensus).
 
