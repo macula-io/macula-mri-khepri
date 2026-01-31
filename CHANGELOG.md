@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-01-31
+
+### Changed
+
+- **Khepri Dependency Update**
+  - Updated khepri from 0.16.0 to 0.17.2 for compatibility with reckon_db ecosystem
+  - Ensures dependency resolution in projects using both macula_mri_khepri and reckon_db
+  - All tests passing (88 tests, 0 failures)
+
+---
+
 ## [0.4.2] - 2026-01-30
 
 ### Fixed
