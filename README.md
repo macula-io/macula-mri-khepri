@@ -224,6 +224,6 @@ Apache-2.0. See [LICENSE](LICENSE).
 ## Links
 
 - [Macula Platform](https://macula.io)
-- [MRI Design Document](https://github.com/macula-io/macula-console/blob/main/plans/DESIGN_MACULA_RESOURCE_IDENTIFIERS.md)
+- MRI Design Document (archived with the deprecated `macula-console` repo)
 - [Khepri](https://github.com/rabbitmq/khepri)
 - [Ra (Raft)](https://github.com/rabbitmq/ra)
