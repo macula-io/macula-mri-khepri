@@ -3,7 +3,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/macula_mri_khepri.svg)](https://hex.pm/packages/macula_mri_khepri)
 [![Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/macula_mri_khepri)
 
-Khepri-based persistence adapter for [Macula Resource Identifiers (MRI)](https://codeberg.org/macula-io/macula).
+Khepri-based persistence adapter for [Macula Resource Identifiers (MRI)](https://github.com/macula-io/macula).
 
 Provides distributed, Raft-consensus storage for MRI registration and graph relationships.
 
@@ -214,7 +214,7 @@ At full scale, this models:
 
 ## Documentation
 
-- **[MRI Core Guide](https://codeberg.org/macula-io/macula/blob/main/guides/mri.md)** - MRI format, types, behaviours, extensibility
+- **[MRI Core Guide](https://github.com/macula-io/macula/blob/main/guides/mri.md)** - MRI format, types, behaviours, extensibility
 - **[Khepri Adapter Guide](guides/mri-system-guide.md)** - Storage schema, API usage, configuration, troubleshooting
 
 ## License
