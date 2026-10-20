@@ -214,7 +214,7 @@ At full scale, this models:
 
 ## Documentation
 
-- **[MRI Core Guide](https://github.com/macula-io/macula/blob/main/guides/mri.md)** - MRI format, types, behaviours, extensibility
+- **[MRI Core Guide](https://github.com/macula-io/macula/blob/main/docs/guides/shared/MRI_GUIDE.md)** - MRI format, types, behaviours, extensibility
 - **[Khepri Adapter Guide](guides/mri-system-guide.md)** - Storage schema, API usage, configuration, troubleshooting
 
 ## License

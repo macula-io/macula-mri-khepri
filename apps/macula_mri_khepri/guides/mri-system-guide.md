@@ -2,7 +2,7 @@
 
 This guide covers the Khepri-based storage implementation for Macula Resource Identifiers.
 
-**For core MRI concepts, format, and type registry, see the [MRI Guide](https://github.com/macula-io/macula/blob/main/guides/mri.md) in the macula/ repository.**
+**For core MRI concepts, format, and type registry, see the [MRI Guide](https://github.com/macula-io/macula/blob/main/docs/guides/shared/MRI_GUIDE.md) in the macula/ repository.**
 
 ## Overview
 
@@ -26,7 +26,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {macula_mri_khepri, "0.1.0"}
+    {macula_mri_khepri, "~> 0.4"}
 ]}.
 ```
 
@@ -342,6 +342,6 @@ RelPath = [mri_rel, forward, Subject],
 
 ## Related Documentation
 
-- [Core MRI Guide](https://github.com/macula-io/macula/blob/main/guides/mri.md) - Format, types, behaviours
+- [Core MRI Guide](https://github.com/macula-io/macula/blob/main/docs/guides/shared/MRI_GUIDE.md) - Format, types, behaviours
 - [Khepri Documentation](https://github.com/rabbitmq/khepri)
 - [Ra (Raft) Documentation](https://github.com/rabbitmq/ra)
