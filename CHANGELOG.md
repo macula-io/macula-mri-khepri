@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Demo and tests use MRI types that exist**
+  - `macula_mri` validates a type against its built-in list plus the runtime
+    custom-type registry, so `mri:srp:`, `mri:home:` and `mri:asset:` are
+    rejected with `unknown_type`. The TelcoX demo's `srp` and `home` and two
+    test fixtures' `asset` were never valid types; the demo was written against
+    macula 8, which accepted anything.
+  - Street cabinets are now `device`, the type the guide already uses for a
+    cabinet, and home connections are `instance`. The demo's module docs and the
+    metadata (`role => srp`, `role => home`) say what each one models.
+  - This was 7 of the 88 EUnit tests.
+
+- **Dialyzer findings**
+  - Thirteen `unmatched_returns`. The index writes in `update_indexes`,
+    `remove_indexes` and `index_mri` are now matched: the read path falls back
+    to a tree scan only when an index is *empty*, so a swallowed failure means
+    an MRI that `list_by_type` silently drops, or a stale entry it keeps
+    returning. The `khepri_tx` calls inside graph transactions abort by
+    throwing, so they are matched too, as are two TUI imports; `io:setopts`
+    and `os:cmd` stay deliberately unchecked and now say so.
+
+### Added
+
+- **CI**: EUnit and Dialyzer on every push and every pull request, on OTP
+  28.4.3. There is no lint step: the elvis config points at `src/**/*.erl`,
+  which matches nothing in this umbrella layout, so it had never looked at a
+  file. Corrected to `apps/*/src/**/*.erl` it reports 40 findings across five
+  files, which is its own package.
+
 ## [0.4.3] - 2026-01-31
 
 ### Changed

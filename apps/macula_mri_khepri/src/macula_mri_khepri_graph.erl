@@ -125,8 +125,8 @@ create_relationship(Store, Subject, Predicate, Object, Metadata) ->
 
     %% khepri:transaction returns {ok, TransactionResult} or {error, ...}
     case khepri:transaction(Store, fun() ->
-        khepri_tx:put(ForwardPath, Data),
-        khepri_tx:put(ReversePath, Data)
+        ok = khepri_tx:put(ForwardPath, Data),
+        ok = khepri_tx:put(ReversePath, Data)
     end) of
         {ok, _} -> ok;
         Error -> Error
@@ -144,8 +144,8 @@ delete_relationship(Store, Subject, Predicate, Object) ->
 
     %% khepri:transaction returns {ok, TransactionResult} or {error, ...}
     case khepri:transaction(Store, fun() ->
-        khepri_tx:delete(ForwardPath),
-        khepri_tx:delete(ReversePath)
+        ok = khepri_tx:delete(ForwardPath),
+        ok = khepri_tx:delete(ReversePath)
     end) of
         {ok, _} -> ok;
         Error -> Error

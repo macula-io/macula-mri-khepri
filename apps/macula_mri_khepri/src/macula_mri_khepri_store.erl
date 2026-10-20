@@ -433,11 +433,15 @@ do_export_subtree(Store, MRI) ->
 update_indexes(Store, MRI, _Metadata) ->
     case macula_mri_khepri_parse:parse(MRI) of
         {ok, Type, Realm, _} ->
+            %% The read path falls back to a tree scan only when an index is
+            %% EMPTY, so a failed index write is not a slow read: it is an MRI
+            %% missing from list_by_type for as long as the index is non-empty.
+            %% The write therefore fails with the index.
             %% Type index (config-driven)
             case application:get_env(macula_mri_khepri, enable_type_index, true) of
                 true ->
                     TypeIndexPath = [mri_index, by_type, Type, Realm, MRI],
-                    khepri:put(Store, TypeIndexPath, true);
+                    ok = khepri:put(Store, TypeIndexPath, true);
                 false ->
                     ok
             end,
@@ -445,7 +449,7 @@ update_indexes(Store, MRI, _Metadata) ->
             case application:get_env(macula_mri_khepri, enable_realm_index, true) of
                 true ->
                     RealmIndexPath = [mri_index, by_realm, Realm, MRI],
-                    khepri:put(Store, RealmIndexPath, true);
+                    ok = khepri:put(Store, RealmIndexPath, true);
                 false ->
                     ok
             end,
@@ -459,11 +463,15 @@ update_indexes(Store, MRI, _Metadata) ->
 remove_indexes(Store, MRI) ->
     case macula_mri_khepri_parse:parse(MRI) of
         {ok, Type, Realm, _} ->
+            %% An entry that is not there is the state this function wants, so
+            %% "node not found" is a success. A failed delete of an entry that
+            %% IS there leaves a stale MRI that list_by_type keeps returning,
+            %% which is why anything else fails the removal.
             %% Type index (config-driven)
             case application:get_env(macula_mri_khepri, enable_type_index, true) of
                 true ->
                     TypeIndexPath = [mri_index, by_type, Type, Realm, MRI],
-                    khepri:delete(Store, TypeIndexPath);
+                    ok = delete_index(Store, TypeIndexPath);
                 false ->
                     ok
             end,
@@ -471,11 +479,26 @@ remove_indexes(Store, MRI) ->
             case application:get_env(macula_mri_khepri, enable_realm_index, true) of
                 true ->
                     RealmIndexPath = [mri_index, by_realm, Realm, MRI],
-                    khepri:delete(Store, RealmIndexPath);
+                    ok = delete_index(Store, RealmIndexPath);
                 false ->
                     ok
             end,
             ok;
         _ ->
             ok
+    end.
+
+%% @private Delete one index node, treating "already gone" as done.
+%%
+%% Khepri answers `node_not_found' for a path that does not exist, and that is
+%% the state the caller asked for. Every other error is a failed removal and is
+%% returned, so the `ok =' above fails on it. Both error shapes are matched:
+%% Khepri 0.16 changed the wrapper and this repository accepts either.
+-spec delete_index(store(), list()) -> ok | {error, term()}.
+delete_index(Store, Path) ->
+    case khepri:delete(Store, Path) of
+        ok -> ok;
+        {error, {khepri, node_not_found, _}} -> ok;
+        {error, {node_not_found, _}} -> ok;
+        Error -> Error
     end.

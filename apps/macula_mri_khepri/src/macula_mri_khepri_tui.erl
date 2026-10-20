@@ -77,8 +77,9 @@ start() ->
 %% @doc Start with options.
 -spec start(map()) -> ok.
 start(Opts) ->
-    %% Set up terminal
-    io:setopts([{encoding, unicode}]),
+    %% Set up terminal. A terminal without unicode support still runs the TUI,
+    %% so the answer to this call is deliberately not checked.
+    _ = io:setopts([{encoding, unicode}]),
     ok = io:put_chars(?HIDE_CURSOR),
 
     try
@@ -379,7 +380,7 @@ handle_generate(#state{store = Store, scale = Scale} = State) ->
         SrpBatches = split_batches(SrpEntries, SrpBatchSize),
 
         {_, SrpProgress} = lists:foldl(fun(Batch, {BatchIdx, _ProgressAcc}) ->
-            macula_mri_khepri_store:import(Store, Batch),
+            ok = macula_mri_khepri_store:import(Store, Batch),
             EntriesDone = min(BatchIdx * SrpBatchSize, length(SrpEntries)),
             NewProgress = Progress + BatchIdx,
             %% Debug: simple progress line
@@ -417,7 +418,7 @@ handle_generate(#state{store = Store, scale = Scale} = State) ->
 
         %% Import homes with progress
         {_, HomeProgress} = lists:foldl(fun(Batch, {BatchIdx, _ProgressAcc}) ->
-            macula_mri_khepri_store:import(Store, Batch),
+            ok = macula_mri_khepri_store:import(Store, Batch),
             EntriesDone = min(BatchIdx * HomeBatchSize, TotalHomeEntries),
             NewProgress = SrpProgress + BatchIdx,
             render(State2#state{
@@ -458,7 +459,7 @@ handle_query(#state{status = idle} = State) ->
 handle_query(#state{store = Store} = State) ->
     %% Sample query: find all SRPs in Brussels
     {Time1, Brussels} = timer:tc(fun() ->
-        macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>)
+        macula_mri_khepri_store:list_by_type(Store, device, <<"be.telcox">>)
     end),
 
     BrusselsSrps = [S || S <- Brussels,
@@ -477,7 +478,7 @@ handle_benchmark(#state{store = Store} = State) ->
     render(State1),
 
     %% Get sample SRPs
-    AllSrps = macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>),
+    AllSrps = macula_mri_khepri_store:list_by_type(Store, device, <<"be.telcox">>),
     SampleSrps = case length(AllSrps) of
         0 -> [];
         N -> [lists:nth(rand:uniform(N), AllSrps) || _ <- lists:seq(1, min(10, N))]
@@ -499,14 +500,14 @@ handle_benchmark(#state{store = Store} = State) ->
             {ChildTime, _} = timer:tc(fun() ->
                 lists:foreach(fun(_) ->
                     SrpMRI = lists:nth(rand:uniform(length(SampleSrps)), SampleSrps),
-                    HomeMRI = binary:replace(SrpMRI, <<"mri:srp:">>, <<"mri:home:">>),
+                    HomeMRI = binary:replace(SrpMRI, <<"mri:device:">>, <<"mri:instance:">>),
                     macula_mri_khepri_store:list_children(Store, HomeMRI)
                 end, lists:seq(1, 10))
             end),
 
             %% Type query benchmark
             {TypeTime, _} = timer:tc(fun() ->
-                macula_mri_khepri_store:list_by_type(Store, srp, <<"be.telcox">>)
+                macula_mri_khepri_store:list_by_type(Store, device, <<"be.telcox">>)
             end),
 
             %% Region count benchmark
@@ -565,7 +566,7 @@ handle_exit(#state{store = Store, data_dir = DataDir}) ->
     catch khepri:stop(Store),
     catch ra_system:stop(Store),
     timer:sleep(100),
-    os:cmd("rm -rf " ++ DataDir),
+    _ = os:cmd("rm -rf " ++ DataDir),
     ok.
 
 %%====================================================================
@@ -630,9 +631,10 @@ format_metric(Value, Unit) ->
 
 make_srp_entry(Region, SrpNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
-    MRI = <<"mri:srp:be.telcox/", Region/binary, "/", SrpId/binary>>,
+    MRI = <<"mri:device:be.telcox/", Region/binary, "/", SrpId/binary>>,
     Metadata = #{
-        type => srp,
+        type => device,
+        role => srp,
         region => Region,
         capacity => 288,
         active_ports => rand:uniform(288),
@@ -643,9 +645,10 @@ make_srp_entry(Region, SrpNum) ->
 make_home_entry(Region, SrpNum, HomeNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
     HomeId = iolist_to_binary(io_lib:format("home-~8..0B", [HomeNum])),
-    MRI = <<"mri:home:be.telcox/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
+    MRI = <<"mri:instance:be.telcox/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
     Metadata = #{
-        type => home,
+        type => instance,
+        role => home,
         region => Region,
         srp => SrpId,
         connection_type => fiber,

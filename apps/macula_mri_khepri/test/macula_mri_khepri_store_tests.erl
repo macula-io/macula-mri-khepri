@@ -467,8 +467,8 @@ parse_valid_mri_without_path() ->
 
 parse_mri_multiple_segments() ->
     %% MRI with deeply nested path
-    MRI = <<"mri:asset:io.macula/org/team/project/asset">>,
-    Metadata = #{name => <<"Deep Asset">>},
+    MRI = <<"mri:artifact:io.macula/org/team/project/artifact">>,
+    Metadata = #{name => <<"Deep Artifact">>},
 
     CapturedPath = ets:new(captured_path, [public, set]),
 
@@ -481,7 +481,7 @@ parse_mri_multiple_segments() ->
     macula_mri_khepri_store:register(test_store, MRI, Metadata),
 
     [{path, ResultPath}] = ets:lookup(CapturedPath, path),
-    ?assertEqual([mri, asset, <<"io.macula">>, <<"org">>, <<"team">>, <<"project">>, <<"asset">>], ResultPath),
+    ?assertEqual([mri, artifact, <<"io.macula">>, <<"org">>, <<"team">>, <<"project">>, <<"artifact">>], ResultPath),
 
     ets:delete(CapturedPath).
 

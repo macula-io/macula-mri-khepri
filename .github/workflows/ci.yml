@@ -1,0 +1,85 @@
+name: ci
+
+# EUnit and Dialyzer on every push to a branch and every pull request.
+#
+# THIS REPOSITORY HAD NO CI. The only gate was the author running the suite
+# locally before a release, and the suite had 7 failures that nobody saw: a
+# dependency bump (macula 8 to 10) made MRI types strict, and the demo's own
+# `srp`, `home` and two test fixtures' `asset` were no longer valid types. They
+# are fixed in the change that adds this workflow.
+#
+# On push and pull request, not dispatch-only: the failure mode being prevented
+# is "nobody remembered to run it", and a gate that only runs when someone
+# remembers preserves exactly that condition.
+#
+# `branches: ['**']` IS LOAD-BEARING. A `push` event fires for tag refs as well,
+# so without it this suite would run a second time on every release tag. `**`
+# matches every branch and excludes tags.
+#
+# NO LINT STEP, on purpose. The elvis config in rebar.config points at
+# `apps/*/src/**/*.erl`, and against that it reports 40 findings across five
+# files (mostly `no_if_expression` and `no_deep_nesting` in the TUI). Until
+# this workflow existed the glob was `src/**/*.erl`, which matches nothing in
+# this umbrella layout, so `rebar3 as lint lint` failed with "yielded no files
+# to analyse" and had never looked at a single file. Making the code pass is its
+# own package; a red lint step here would only teach people to ignore CI.
+#
+# NO CT STEP: there are no Common Test suites in the tree. Every test in
+# apps/macula_mri_khepri/test is an EUnit module.
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore: ['**.md', 'assets/**']
+  pull_request:
+    paths-ignore: ['**.md', 'assets/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OTP_VERSION: '28.4.3'
+  REBAR3_VERSION: '3.27.0'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: eunit + dialyzer (OTP 28.4.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Erlang/OTP and rebar3
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.OTP_VERSION }}
+          rebar3-version: ${{ env.REBAR3_VERSION }}
+          version-type: strict
+
+      # The hex cache only. A cached `_build' restores stale beams and rebar3
+      # runs test modules from the build path, so a deleted test keeps running
+      # from its stale beam. Dependency downloads are the slow part and do not
+      # have that hazard.
+      - name: Cache hex deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/rebar3
+          key: macula-mri-khepri-otp${{ env.OTP_VERSION }}-${{ hashFiles('rebar.config', 'apps/*/src/*.app.src') }}
+          restore-keys: macula-mri-khepri-otp${{ env.OTP_VERSION }}-
+
+      - name: Compile
+        run: rebar3 compile
+
+      # The suite starts a real Khepri store on a short-named local node (the
+      # test profile sets {sname, macula_mri_test}), so this step needs epmd.
+      - name: EUnit
+        run: rebar3 eunit
+
+      # Last because it is the slowest; the PLT is built on the first run.
+      - name: Dialyzer
+        run: rebar3 dialyzer

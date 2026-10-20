@@ -294,8 +294,8 @@ handles_deeply_nested_path() ->
     end),
 
     MRIData = #{
-        [mri, asset, <<"io.macula">>, <<"org">>, <<"team">>, <<"proj">>, <<"file">>] =>
-            #{mri => <<"mri:asset:io.macula/org/team/proj/file">>, name => <<"File">>}
+        [mri, artifact, <<"io.macula">>, <<"org">>, <<"team">>, <<"proj">>, <<"file">>] =>
+            #{mri => <<"mri:artifact:io.macula/org/team/proj/file">>, name => <<"File">>}
     },
 
     meck:expect(khepri, get_many, fun(_Store, Path) ->
@@ -314,6 +314,6 @@ handles_deeply_nested_path() ->
     ok = macula_mri_khepri_index:rebuild_indexes(test_store),
 
     Indexed = [I || {indexed, I} <- ets:tab2list(IndexedMRIs)],
-    ?assert(lists:member({asset, <<"io.macula">>, <<"mri:asset:io.macula/org/team/proj/file">>}, Indexed)),
+    ?assert(lists:member({artifact, <<"io.macula">>, <<"mri:artifact:io.macula/org/team/proj/file">>}, Indexed)),
 
     ets:delete(IndexedMRIs).

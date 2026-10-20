@@ -14,11 +14,13 @@
 %%% ```
 %%% Realm: be.telcox
 %%%
-%%% Street Cabinets (SRPs):
-%%%   mri:srp:be.telcox/{region}/{srp_id}
+%%% Street Cabinets (SRPs), modelled as `device', the MRI type for a
+%%% piece of equipment:
+%%%   mri:device:be.telcox/{region}/{srp_id}
 %%%
-%%% Home Connections:
-%%%   mri:home:be.telcox/{region}/{srp_id}/{home_id}
+%%% Home Connections, modelled as `instance', the MRI type for one
+%%% instance of a service at an address:
+%%%   mri:instance:be.telcox/{region}/{srp_id}/{home_id}
 %%% '''
 %%%
 %%% == Regions ==
@@ -135,9 +137,10 @@ generate_region(Store, Region, SrpCount, AvgHomes, Variance, BatchSize) ->
 %% @private Create an SRP entry.
 make_srp_entry(Region, SrpNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
-    MRI = <<"mri:srp:", ?REALM/binary, "/", Region/binary, "/", SrpId/binary>>,
+    MRI = <<"mri:device:", ?REALM/binary, "/", Region/binary, "/", SrpId/binary>>,
     Metadata = #{
-        type => srp,
+        type => device,
+        role => srp,
         region => Region,
         capacity => 288,  %% Standard SRP port count
         active_ports => rand:uniform(288),
@@ -149,9 +152,10 @@ make_srp_entry(Region, SrpNum) ->
 make_home_entry(Region, SrpNum, HomeNum) ->
     SrpId = iolist_to_binary(io_lib:format("srp-~6..0B", [SrpNum])),
     HomeId = iolist_to_binary(io_lib:format("home-~8..0B", [HomeNum])),
-    MRI = <<"mri:home:", ?REALM/binary, "/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
+    MRI = <<"mri:instance:", ?REALM/binary, "/", Region/binary, "/", SrpId/binary, "/", HomeId/binary>>,
     Metadata = #{
-        type => home,
+        type => instance,
+        role => home,
         region => Region,
         srp => SrpId,
         connection_type => random_connection_type(),
@@ -218,7 +222,7 @@ cleanup_network(Store, _Opts) ->
             Path = [mri, Type, ?REALM, ?KHEPRI_WILDCARD_STAR_STAR],
             catch khepri:delete_many(Store, Path)
         end,
-        [srp, home]
+        [device, instance]
     ),
 
     io:format("Network cleaned up~n"),
@@ -238,8 +242,8 @@ count_by_region(Store, _Opts) ->
     Regions = [Region || {Region, _} <- ?REGIONS],
     maps:from_list([
         {Region, #{
-            srps => count_type_in_region(Store, srp, Region),
-            homes => count_type_in_region(Store, home, Region)
+            srps => count_type_in_region(Store, device, Region),
+            homes => count_type_in_region(Store, instance, Region)
         }}
     || Region <- Regions]).
 
@@ -255,7 +259,7 @@ list_srps_in_region(Store, Region) ->
 
 -spec list_srps_in_region(atom(), binary(), map()) -> [binary()].
 list_srps_in_region(Store, Region, _Opts) ->
-    BaseMRI = <<"mri:srp:", ?REALM/binary, "/", Region/binary>>,
+    BaseMRI = <<"mri:device:", ?REALM/binary, "/", Region/binary>>,
     macula_mri_khepri_store:list_children(Store, BaseMRI).
 
 %% @doc List all homes connected to an SRP.
@@ -266,8 +270,8 @@ list_homes_for_srp(Store, SrpMRI) ->
 -spec list_homes_for_srp(atom(), binary(), map()) -> [binary()].
 list_homes_for_srp(Store, SrpMRI, _Opts) ->
     %% Extract region and SRP ID from the SRP MRI
-    %% mri:srp:be.telcox/region/srp-id -> mri:home:be.telcox/region/srp-id
-    HomeMRI = binary:replace(SrpMRI, <<"mri:srp:">>, <<"mri:home:">>),
+    %% mri:device:be.telcox/region/srp-id -> mri:instance:be.telcox/region/srp-id
+    HomeMRI = binary:replace(SrpMRI, <<"mri:device:">>, <<"mri:instance:">>),
     macula_mri_khepri_store:list_children(Store, HomeMRI).
 
 %%====================================================================
@@ -323,7 +327,7 @@ benchmark(Store, Opts) ->
     {ChildTime, _} = timer:tc(fun() ->
         lists:foreach(fun(_) ->
             SrpMRI = lists:nth(rand:uniform(length(SampleSrps)), SampleSrps),
-            HomeMRI = binary:replace(SrpMRI, <<"mri:srp:">>, <<"mri:home:">>),
+            HomeMRI = binary:replace(SrpMRI, <<"mri:device:">>, <<"mri:instance:">>),
             macula_mri_khepri_store:list_children(Store, HomeMRI)
         end, lists:seq(1, min(Iterations, 20)))  %% Limit due to cost
     end),
@@ -332,7 +336,7 @@ benchmark(Store, Opts) ->
     %% Benchmark list_by_type
     io:format("~n--- List By Type Benchmark ---~n"),
     {TypeTime, Results} = timer:tc(fun() ->
-        macula_mri_khepri_store:list_by_type(Store, srp, ?REALM)
+        macula_mri_khepri_store:list_by_type(Store, device, ?REALM)
     end),
     io:format("List all SRPs: ~.2f ms (~p results)~n", [TypeTime / 1000, length(Results)]),
 
@@ -358,7 +362,7 @@ benchmark(Store, Opts) ->
 
 %% @private Sample some SRP MRIs for benchmarking.
 sample_srps(Store, Count) ->
-    AllSrps = macula_mri_khepri_store:list_by_type(Store, srp, ?REALM),
+    AllSrps = macula_mri_khepri_store:list_by_type(Store, device, ?REALM),
     case length(AllSrps) of
         0 -> [];
         N when N =< Count -> AllSrps;

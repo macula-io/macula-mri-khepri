@@ -171,7 +171,7 @@ test_list_srps_in_region(_DataDir) ->
 
         %% Verify MRI format
         [FirstSrp | _] = Srps,
-        ?assert(binary:match(FirstSrp, <<"mri:srp:be.telcox/brussels/">>) =/= nomatch)
+        ?assert(binary:match(FirstSrp, <<"mri:device:be.telcox/brussels/">>) =/= nomatch)
     end}.
 
 test_list_homes_for_srp(_DataDir) ->
@@ -195,7 +195,7 @@ test_list_homes_for_srp(_DataDir) ->
 
         %% Verify home MRI format
         [FirstHome | _] = Homes,
-        ?assert(binary:match(FirstHome, <<"mri:home:be.telcox/brussels/">>) =/= nomatch)
+        ?assert(binary:match(FirstHome, <<"mri:instance:be.telcox/brussels/">>) =/= nomatch)
     end}.
 
 test_cleanup_network(_DataDir) ->
@@ -212,13 +212,13 @@ test_cleanup_network(_DataDir) ->
         }),
 
         %% Verify data exists
-        Srps = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.telcox">>),
+        Srps = macula_mri_khepri_store:list_by_type(?TEST_STORE, device, <<"be.telcox">>),
         ?assertEqual(4, length(Srps)),
 
         %% Cleanup
         ok = macula_mri_khepri_telcox_demo:cleanup_network(?TEST_STORE),
 
         %% Verify data is gone
-        SrpsAfter = macula_mri_khepri_store:list_by_type(?TEST_STORE, srp, <<"be.telcox">>),
+        SrpsAfter = macula_mri_khepri_store:list_by_type(?TEST_STORE, device, <<"be.telcox">>),
         ?assertEqual(0, length(SrpsAfter))
     end}.

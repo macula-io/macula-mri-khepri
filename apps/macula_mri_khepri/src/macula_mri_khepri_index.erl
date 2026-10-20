@@ -99,8 +99,16 @@ ensure_index_structure(_Store) ->
 
 %% @private Rebuild all indexes from stored MRIs.
 do_rebuild_indexes(Store) ->
-    %% Clear existing indexes
-    khepri:delete(Store, [mri_index]),
+    %% Clear existing indexes. There is nothing to clear on a store that has
+    %% never been indexed, so "node not found" is the state we want; any other
+    %% error means stale entries would survive the rebuild, and the rebuild
+    %% fails instead of writing over them.
+    case khepri:delete(Store, [mri_index]) of
+        ok -> ok;
+        {error, {khepri, node_not_found, _}} -> ok;
+        {error, {node_not_found, _}} -> ok;
+        Error -> erlang:error({cannot_clear_indexes, Error})
+    end,
 
     %% Scan all MRIs and rebuild indexes
     %% This is expensive but necessary for recovery
@@ -126,11 +134,14 @@ scan_and_index(Store, BasePath) ->
 index_mri(Store, MRI, Metadata) ->
     case macula_mri_khepri_parse:parse(MRI) of
         {ok, Type, Realm, _} ->
+            %% The read path falls back to a tree scan only when an index is
+            %% EMPTY, so a failed write here is an MRI missing from
+            %% list_by_type, not a slow read. The rebuild fails with the index.
             %% Type index (config-driven)
             case application:get_env(macula_mri_khepri, enable_type_index, true) of
                 true ->
                     TypePath = [mri_index, by_type, Type, Realm, MRI],
-                    khepri:put(Store, TypePath, true);
+                    ok = khepri:put(Store, TypePath, true);
                 false ->
                     ok
             end,
@@ -138,7 +149,7 @@ index_mri(Store, MRI, Metadata) ->
             case application:get_env(macula_mri_khepri, enable_realm_index, true) of
                 true ->
                     RealmPath = [mri_index, by_realm, Realm, MRI],
-                    khepri:put(Store, RealmPath, true);
+                    ok = khepri:put(Store, RealmPath, true);
                 false ->
                     ok
             end,
